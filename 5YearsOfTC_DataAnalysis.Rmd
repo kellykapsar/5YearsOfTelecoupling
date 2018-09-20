@@ -1,0 +1,151 @@
+---
+title: "5YearsOfTC_DataAnalysis"
+author: "KellyKapsar"
+date: "September 20, 2018"
+output: html_document
+---
+
+
+```{r}
+
+##Preliminaries
+
+#Clear memory
+rm(list=ls())
+
+#Import libraries
+library(tidyverse) 
+
+#Set working directory
+setwd("C:/Users/Kelly Kapsar/Documents/MSU/Five Years of Telecoupling Chapter")
+
+
+#Select the location in which you have saved the csv file
+lit <- read.csv("TelecouplingPapers_20180610.csv")
+
+lit <- as.tibble(lit)
+
+
+```
+
+## Purpose
+
+This is an R Markdown document that illustrates the data cleaning process for the data collected as a part of the literature review portion of the Five Years of Telecoupling manuscript. The purpose of this document is to create a clean and standardized dataset from which to interpret the findings of the literature review and to demonstrate some preliminary results.
+
+
+## Data Cleaning 
+
+```{r}
+
+#list of columns to remove
+rem <- c(1,4,5,6,8,12, 13, 14, 15, 16, 17, 19:34)
+
+#remove unnecessary columns
+lit <- lit[,-rem]
+
+#column names
+#names(lit) -- original names
+
+new.names <- c("Title","Authors","Source.Title","Yr","Vol","Issue","
+               DOI","Geo.Scale","Countries","Num.Countries","Regions",
+               "System.Type","Meas.Unit","Time.Period","Conc.Empir","Comp.ID",
+               "Comp.Analyzed","Flow.Type","Flow.Type.Stats","Scholar.Cite",
+               "WOS.Cite","Discipline","Quant.Meth","Qual.Meth","Future","Notes")
+
+colnames(lit) <- new.names
+
+#put all characters into lower case
+lit$Source.Title <- tolower(lit$Source.Title)
+lit$Countries <- tolower(lit$Countries)
+lit$Geo.Scale <- tolower(lit$Geo.Scale)
+lit$System.Type <- tolower(lit$System.Type)
+lit$Meas.Unit <- tolower(lit$Meas.Unit)
+lit$Conc.Empir <- tolower(lit$Conc.Empir)
+lit$Comp.Analyzed <- tolower(lit$Comp.Analyzed)
+lit$Comp.ID <- tolower(lit$Comp.ID)
+lit$Flow.Type <- tolower(lit$Flow.Type)
+lit$Flow.Type.Stats <- tolower(lit$Flow.Type.Stats)
+lit$Discipline <- tolower(lit$Discipline)
+lit$Quant.Meth <- tolower(lit$Quant.Meth)
+lit$Qual.Meth <- tolower(lit$Qual.Meth)
+
+#Replace "country" with "national" for the Geo.Scale column
+lit$Geo.Scale <- gsub("country","national",lit$Geo.Scale)
+
+#Identify and separate non-telecoupling papers into 
+#their own dataframe (based on lit$Notes)
+nottc <- c(1,3,5,9,13,14,16,19,20,21,25,32,
+           33,36,37,38,50,52,56,58,59,73,78)
+
+length(nottc) 
+#23 papers found to use the word telecoupling, but do not apply 
+#the telecoupling framework in a conceptual or empirical way. 
+
+tc <- lit[-nottc,] #remove non-tc papers from dataframe
+nottc <- lit[nottc,] #change from a list of row nums to a df w/ only the non-tc papers
+
+
+#One paper, Liu et al. 2015 was marked as empirical, 
+#however the empirical analyses were not framed
+#according to the telecoupling framework and 
+#therefore I changed it to conceptual 
+tc$Conc.Empir[60] <- "conceptual"
+
+#Separate conceptual and empirical tc papers
+tc.emp <- tc[grep("emp", tc$Conc.Empir),]
+tc.conc <- tc[grep("conc", tc$Conc.Empir),]
+tc.both <- tc[intersect(grep("emp", tc$Conc.Empir), 
+                        grep("conc",tc$Conc.Empir)),]
+
+#Visually inspected tc.conc and tc.emp to validate sorting. 
+#ID'd one paper that needs to be removed from "emp"
+tc.emp <- tc.emp[-18,]
+tc.both <- tc.both[-7,] #remove same paper from "both" dataframe
+
+#Note that all of the articles in the "tc.both" 
+#data frame are repeated in the "tc.conc" and "tc.emp" data frames
+length(tc.emp$Title) + length(tc.conc$Title) - 
+  length(tc.both$Title) == length(tc$Title)
+
+
+
+```
+
+## Some preliminary stats
+
+```{r}
+length(unique(tc$Source.Title)) 
+#36 unique locations in which telecoupling articles have been published
+```
+
+Can also be written as text: Telecoupling studies have been published in `r length(unique(tc$Source.Title))` different locations (i.e. journals, books, etc.). 
+
+```{r}
+length(grep("internat",tc.emp$Geo.Scale))
+length(grep("internat",tc.emp$Geo.Scale))/length(tc.emp$Geo.Scale)
+#54.8% of all empirical telecoupling studies were conducted at the international scale 
+
+length(grep("internat",tc$Geo.Scale))
+length(grep("internat",tc$Geo.Scale))/length(tc$Geo.Scale)
+#54.8% of all empirical telecoupling studies were conducted at the international scale 
+
+length(grep("china",tc$Countries))
+length(grep("agric",tc$System.Type))
+
+length(grep("local",tc.emp$Geo.Scale))/length(tc.emp$Geo.Scale)
+#13.3% of all empirical telecoupling studies were conducted at the local scale 
+
+length(which(tc.emp$Num.Countries == 1))
+#6 empirical studies conducted on only 1 country 
+
+length(grep("trade",tc$Flow.Type.Stats))
+length(grep("trade",tc$Flow.Type.Stats))/length(tc$Flow.Type.Stats)
+#68% of all tc studies focus on trade 
+
+length(grep("trade",tc.emp$Flow.Type.Stats))
+length(grep("trade",tc.emp$Flow.Type.Stats))/length(tc.emp$Flow.Type.Stats)
+#73% of empirical studies focus on trade 
+
+
+```
+
